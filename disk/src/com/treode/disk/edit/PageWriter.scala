@@ -20,14 +20,24 @@ import com.treode.async.io.File
 import com.treode.async.Async
 import com.treode.buffer.PagedBuffer
 
-private class PageWriter (
-  val file: File
-) {
 
+private class PageWriter(dsp: PageDispatcher,val file: File)
+ {
   val bits = 10
   val buffer = PagedBuffer (bits)
   var pos : Long = 0
+  val dispatcher = dsp
+  /*
+  listen() run (ignore)
 
+  def listen(): Async[Unit] = 
+    for { 
+      (batch, strings) <- dispatcher.receive()
+      _ <- write(strings)
+    } yield {
+      listen() run (ignore)
+    }
+    */
   /**
    * Write `data` into the file asynchronously, using a write buffer. Returns
    * the position of the writer and length written, if successful.
