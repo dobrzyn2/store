@@ -37,7 +37,7 @@ class PageDescriptor [P] private (
     * A handler must be registered with the launch builder. The disk system will panic if it
     * discovers a page of data that it cannot identify.
     */
-  def handle (handler: PageHandler) (implicit launch: Disk.Launch): Unit =
+  def handle (handler: PageHandler) (implicit launch: DiskLaunch): Unit =
     launch.handle (this, handler)
 
   /** Read a page.
@@ -50,11 +50,11 @@ class PageDescriptor [P] private (
   /** Write a page.
     *
     * @param obj The ID of the object; see [[PageHandler]].
-    * @param grp The ID of the group; see [[PageHandler]].
+    * @param gen The generation of the page; see [[PageHandler]].
     * @param page The data.
     */
-  def write (obj: ObjectId, group: GroupId, page: P) (implicit disk: Disk): Async [Position] =
-    disk.write (this, obj, group, page)
+  def write (obj: ObjectId, gen: Long, page: P) (implicit disk: Disk): Async [Position] =
+    disk.write (this, obj, gen, page)
 
   /** Schedule the object for compaction.
     *
@@ -64,7 +64,7 @@ class PageDescriptor [P] private (
     * the number of compactions that are in flight at one time, and the disk system can double up
     * compaction desired by the object itself with compaction desired by the cleaner.
     */
-  def compact (obj: ObjectId) (implicit disk: Disk): Async [Unit] =
+  def compact (obj: ObjectId) (implicit disk: Disk): Unit =
     disk.compact (this, obj)
 
   override def toString = s"PageDescriptor($id)"

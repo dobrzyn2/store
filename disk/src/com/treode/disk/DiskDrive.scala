@@ -297,7 +297,7 @@ private class DiskDrive (
     var totalBytes = 0
     var realloc = false
     for (page <- pages) {
-      projector.add (page.typ, page.obj, page.group)
+      projector.add (page.typ, page.obj, page.gen)
       val pageBytes = blockAlignUp (page.byteSize)
       val ledgerBytes = blockAlignUp (projector.byteSize)
       if (totalBytes + ledgerBytes + pageBytes < limit) {
@@ -320,7 +320,7 @@ private class DiskDrive (
       buffer.writePos = blockAlignUp (buffer.writePos)
       val length = buffer.writePos - start
       callbacks.add (offset (id, start, length, page.cb))
-      ledger.add (page.typ, page.obj, page.group, length)
+      ledger.add (page.typ, page.obj, page.gen, length)
     }
     (buffer, callbacks, ledger)
   }
@@ -423,7 +423,7 @@ private object DiskDrive {
       geom: DriveGeometry,
       boot: BootBlock
   ) (implicit
-      config: Disk.Config
+      config: DiskConfig
   ): Async [Unit] =
     guard {
 
@@ -443,11 +443,11 @@ private object DiskDrive {
     }
 
   def init (
-      sysid: Array [Byte],
+      sysid: SystemId,
       items: Seq [(Path, File, DriveGeometry)]
   ) (implicit
       scheduler: Scheduler,
-      config: Disk.Config
+      config: DiskConfig
   ): Async [Unit] =
     guard {
       val attaching = items.setBy (_._1)
@@ -463,7 +463,7 @@ private object DiskDrive {
       }}
 
   def init (
-      sysid: Array [Byte],
+      sysid: SystemId,
       superBlockBits: Int,
       segmentBits: Int,
       blockBits: Int,
@@ -474,7 +474,7 @@ private object DiskDrive {
     var items = Seq.empty [Try [(Path, File, DriveGeometry)]]
     try {
       implicit val scheduler = Scheduler (executor)
-      implicit val config = Disk.Config.suggested.copy (superBlockBits = superBlockBits)
+      implicit val config = DiskConfig.suggested.copy (superBlockBits = superBlockBits)
       val geom = DriveGeometry (segmentBits, blockBits, diskBytes)
       items =
         for (path <- paths)

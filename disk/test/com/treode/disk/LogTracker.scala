@@ -66,25 +66,25 @@ class LogTracker {
       } yield ()
     }
 
-  def probe (groups: Set [GroupId]) (implicit scheduler: Scheduler): Async [Set [GroupId]] =
-    supply (groups)
+  def probe (gens: Set [Long]) (implicit scheduler: Scheduler): Async [Set [Long]] =
+    supply (gens)
 
   def compact () (implicit disk: Disk): Async [Unit] =
     guard {
       checkpoint()
     }
 
-  def attach () (implicit scheduler: Scheduler, launch: Disk.Launch) {
+  def attach () (implicit scheduler: Scheduler, launch: DiskLaunch) {
     import launch.disk
 
     launch.checkpoint (checkpoint())
 
     pagers.table.handle (new PageHandler {
 
-      def probe (obj: ObjectId, groups: Set [GroupId]): Async [Set [GroupId]] =
-        self.probe (groups)
+      def probe (obj: ObjectId, gens: Set [Long]): Async [Set [Long]] =
+        self.probe (gens)
 
-      def compact (obj: ObjectId, groups: Set [GroupId]): Async [Unit] =
+      def compact (obj: ObjectId, gens: Set [Long]): Async [Unit] =
         self.checkpoint()
     })
   }

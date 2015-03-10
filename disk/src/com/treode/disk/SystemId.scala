@@ -16,33 +16,22 @@
 
 package com.treode.disk
 
-import scala.language.implicitConversions
-
-import com.google.common.primitives.UnsignedLongs
 import com.treode.pickle.Picklers
 
-class GroupId private (val id: Long) extends AnyVal with Ordered [GroupId] {
-
-  def compare (that: GroupId): Int =
-    UnsignedLongs.compare (this.id, that.id)
+case class SystemId (id1: Long, id2: Long) {
 
   override def toString =
-    if (id < 256) f"Group:$id%02X" else f"Group:$id%016X"
+    if (id1 < 256 && id2 < 256)
+      f"System:$id1%02X:$id2%02X"
+    else
+      f"System:$id1%016X:$id2%016X"
 }
 
-object GroupId extends Ordering [GroupId] {
-
-  val MinValue = GroupId (0)
-
-  val MaxValue = GroupId (-1)
-
-  implicit def apply (id: Long): GroupId =
-    new GroupId (id)
-
-  def compare (x: GroupId, y: GroupId): Int =
-    x compare y
+object SystemId {
 
   val pickler = {
     import Picklers._
-    wrap (ulong) build (apply _) inspect (_.id)
+    wrap (fixedLong, fixedLong)
+    .build ((apply _).tupled)
+    .inspect (v => (v.id1, v.id2))
   }}
