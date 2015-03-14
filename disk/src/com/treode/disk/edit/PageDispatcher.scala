@@ -28,12 +28,12 @@ import com.treode.async.{Async, Callback, Fiber, Scheduler }, Async.async
 private class PageDispatcher(private var counter: Long)
  (implicit
   scheduler: Scheduler
-) extends Dispatcher [String] (counter)
+) extends Dispatcher [(String, Callback[(Long, Int)])] 
 {
 	def write (data: String) : Async [(Long, Int)] = {
 		async { cb =>
-		val message = UnrolledBuffer(data)
-		send(message) 
+		val batch = (data, cb)
+		send(batch) 
 	}
 }
 }

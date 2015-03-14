@@ -15,11 +15,12 @@
  */
 
 package com.treode.disk.edit
-
+import com.treode.async.{Async, Callback, Scheduler}, Async.supply, Callback.ignore
 import com.treode.async.io.File
 import com.treode.async.Async
 import com.treode.buffer.PagedBuffer
-
+import scala.collection.mutable.UnrolledBuffer
+import com.treode.async.implicits._
 
 private class PageWriter(dsp: PageDispatcher,val file: File)
  {
@@ -27,29 +28,34 @@ private class PageWriter(dsp: PageDispatcher,val file: File)
   val buffer = PagedBuffer (bits)
   var pos : Long = 0
   val dispatcher = dsp
-  /*
+  
   listen() run (ignore)
 
   def listen(): Async[Unit] = 
     for { 
-      (batch, strings) <- dispatcher.receive()
+      (_, strings) <- dispatcher.receive()    //returns (unrolledBuffer,cb)
       _ <- write(strings)
     } yield {
       listen() run (ignore)
     }
-    */
+    
   /**
    * Write `data` into the file asynchronously, using a write buffer. Returns
    * the position of the writer and length written, if successful.
    */
-  def write (data: String) : Async [(Long, Int)] = {
-    buffer.writeString (data)
+  def write (data: UnrolledBuffer [(String, Callback[(Long, Int)])]) : Async [(Long, Int)] = {
+    for (s <- data)
+      buffer.writeString (s._1)
+
     val len = buffer.writePos
     for {
       _ <- file.flush (buffer, pos)
     } yield {
       pos += buffer.writePos
       buffer.clear ()
+      
+      for (s <- data) 
+        s._2.pass((pos, len))
       (pos, len)
     }
   }
