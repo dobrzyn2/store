@@ -41,7 +41,8 @@ class DiskIOSpec extends FlatSpec {
   }
 
 
-  it should "write and read multiple times to disk" in {
+
+  "The DiskIO Reader/Writer " should " be able to write and read multiple times to disk" in {
     println("--------- Test 2 ---------")
     implicit val scheduler = StubScheduler.random()
     val a = "abcdef"
@@ -65,11 +66,10 @@ class DiskIOSpec extends FlatSpec {
   }
 
   it should "write and read correctly out of order" in {
-    implicit val scheduler = StubScheduler.random()
     println("------- Test 3 ------")
+    implicit val scheduler = StubScheduler.random()
     val a = "abcdef"
     val b = "123456789"
-    val startPos = 0
     val f = StubFile (1 << 20, 0)
     val dsp = new PageDispatcher(0)
     val dw = new PageWriter (dsp, f)
@@ -82,6 +82,36 @@ class DiskIOSpec extends FlatSpec {
     assert (b.equals (readB))
     assert (posA == 0)
     assert (posB == a.length + 1)
+  }
+
+  it should "be able to write a full batch correctly and then read it " in {
+    println("------- Test 4 ------")
+    implicit val scheduler = StubScheduler.random()
+    val a = "lorem "
+    val b = "ipsum "
+    val c = "dolor "
+    val d = "sit "
+    val e = "amet"
+    val f = StubFile (1 << 20, 0)
+    val dsp = new PageDispatcher(0)
+    //makes it pass
+    val dw = new PageWriter (dsp, f)
+    val (posA, lenA) = dsp.write(a).expectPass()
+    val (posB, lenB) = dsp.write(b).expectPass()
+    val (posC, lenC) = dsp.write(c).expectPass()
+    val (posD, lenD) = dsp.write(d).expectPass()
+    val (posE, lenE) = dsp.write(e).expectPass()
+    //makes it not pass
+    //val dw = new PageWriter (dsp, f)
+    val dr = new PageReader (f)
+    val readB = dr.readString (posB, lenB) .expectPass()
+    val readA = dr.readString (posA, lenA) .expectPass()
+    assert (a.equals (readA))
+    assert (b.equals (readB))
+    assert (posA == 0)
+    assert (posB == a.length + 1)
+
+
   }
   
 }

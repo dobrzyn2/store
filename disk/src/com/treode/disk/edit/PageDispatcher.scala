@@ -31,7 +31,7 @@ private class PageDispatcher(private var counter: Long)
 ) extends Dispatcher [(String, Callback[(Long, Long)])] 
 {
   def write (data: String) : Async [(Long, Long)] = {
-    async { cb =>
+    async { cb => 
     val batch = (data, cb)
     send(batch) 
   }
