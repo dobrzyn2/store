@@ -84,9 +84,6 @@ class DiskIOSpec extends FlatSpec {
     assert (posB == a.length + 1)
   }
 
-  //this isn't testing what it should :[
-  // i'm not able to get write to get a >1 element unrolledBuffer 
-  // hence I cant test the large batch position recording 
   it should "be able to write a full batch out of order correctly and then read it " in {
     println("------- Test 4 ------")
     implicit val scheduler = StubScheduler.random()
@@ -97,6 +94,7 @@ class DiskIOSpec extends FlatSpec {
     val d = "sit "
     val e = "amet"
     val dsp = new PageDispatcher(0)
+    //the following are purposely done out of order
     val a_callback = dsp.write(a).capture()
     val b_callback = dsp.write(b).capture()
     val e_callback = dsp.write(e).capture()
@@ -109,16 +107,16 @@ class DiskIOSpec extends FlatSpec {
     val (posC, lenC) = c_callback.expectPass()
     val (posD, lenD) = d_callback.expectPass()
     val dr = new PageReader (f)
-    val readB = dr.readString (posB, lenB) .expectPass()
-    val readA = dr.readString (posA, lenA) .expectPass()
-    val readE = dr.readString (posE, lenE) .expectPass()
-    val readD = dr.readString (posD, lenD) .expectPass()
-    val readC = dr.readString (posC, lenC) .expectPass()
-    assert (a.equals (readA))
-    assert (b.equals (readB))
-    assert (c.equals (readC))
-    assert (d.equals (readD))
-    assert (e.equals (readE))
+    val readB = dr.readString (posB, lenB).expectPass()
+    val readE = dr.readString (posE, lenE).expectPass()
+    val readD = dr.readString (posD, lenD).expectPass()
+    val readA = dr.readString (posA, lenA).expectPass()
+    val readC = dr.readString (posC, lenC).expectPass()
+    assert (a.equals(readA))
+    assert (b.equals(readB))
+    assert (c.equals(readC))
+    assert (d.equals(readD))
+    assert (e.equals(readE))
     assert (posA == 0)
     assert (posB == a.length+1)
     assert (posC == (a.length+1) + (b.length+1) + (e.length+1))
