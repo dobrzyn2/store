@@ -84,7 +84,9 @@ class DiskIOSpec extends FlatSpec {
     assert (posB == a.length + 1)
   }
 
-  //this isn't testing what it should :[ 
+  //this isn't testing what it should :[
+  // i'm not able to get write to get a >1 element unrolledBuffer 
+  // hence I cant test the large batch position recording 
   it should "be able to write a full batch out of order correctly and then read it " in {
     println("------- Test 4 ------")
     implicit val scheduler = StubScheduler.random()
@@ -95,11 +97,11 @@ class DiskIOSpec extends FlatSpec {
     val d = "sit "
     val e = "amet"
     val dsp = new PageDispatcher(0)
-    val a_callback = dsp.write(a)
-    val b_callback = dsp.write(b)
-    val c_callback = dsp.write(c)
-    val d_callback = dsp.write(d)
-    val e_callback = dsp.write(e)
+    val a_callback = dsp.write(a).capture()
+    val b_callback = dsp.write(b).capture()
+    val e_callback = dsp.write(e).capture()
+    val c_callback = dsp.write(c).capture()
+    val d_callback = dsp.write(d).capture()
     val dw = new PageWriter (dsp, f)
     val (posA, lenA) = a_callback.expectPass()
     val (posB, lenB) = b_callback.expectPass()
