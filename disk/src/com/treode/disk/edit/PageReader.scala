@@ -31,10 +31,10 @@ private class PageReader (
    * Returns (if successful) the string of length `length` at `pos` in the
    * file asynchronously, using a read buffer.
    */
-  def readString (pos: Long, length: Int) : Async [String] = {
+  def readString (pos: Long, length: Long) : Async [String] = {
     buffer.clear()
     for {
-      _ <- file.fill (buffer, pos, length)
+      _ <- file.fill (buffer, pos, length.toInt)
     } yield {
       buffer.readString ()
     }

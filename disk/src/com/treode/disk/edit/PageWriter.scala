@@ -1,5 +1,4 @@
-/*
- * Copyright 2014 Treode, Inc.
+/* Copyright 2014 Treode, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,37 +25,54 @@ private class PageWriter(dsp: PageDispatcher,val file: File)
  {
   val bits = 10
   val buffer = PagedBuffer (bits)
-  var pos : Long = 0
+  var pos : Long = buffer.writePos
   val dispatcher = dsp
   
+
   listen() run (ignore)
 
-  def listen(): Async[Unit] = 
-    for { 
+  def listen(): Async[Unit] =
+    for {
       (_, strings) <- dispatcher.receive()    //returns (unrolledBuffer,cb)
       _ <- write(strings)
     } yield {
       listen() run (ignore)
     }
-    
+
   /**
    * Write `data` into the file asynchronously, using a write buffer. Returns
    * the position of the writer and length written, if successful.
    */
-  def write (data: UnrolledBuffer [(String, Callback[(Long, Int)])]) : Async [(Long, Int)] = {
-    for (s <- data)
+  def write (data: UnrolledBuffer [(String, Callback[(Long, Long)])]) : Async [(Long, Long)] = {
+    println("start write>>")
+    var writePositions : Array[(Long,Long)] = new Array[(Long,Long)](0);
+    var beforeAnyWrites = pos
+    var i = 0; 
+    for (s <- data) {
+      val beforeEachWritePos = buffer.writePos
       buffer.writeString (s._1)
-
-    val len = buffer.writePos
+      val writeLen : Long = (buffer.writePos - beforeEachWritePos).toLong
+      writePositions :+= ((pos, writeLen ))
+      pos += writeLen
+      i += 1
+    }
+    println("write pos after writing " + buffer.writePos)
+    println("writePos Array" + writePositions.mkString(" "))
+    for(a <- 1 until writePositions.length)
+    {
+      print(" > " + writePositions(a))
+    }
+    println("-*-*")
     for {
-      _ <- file.flush (buffer, pos)
+      _ <- file.flush (buffer, beforeAnyWrites)
     } yield {
-      pos += buffer.writePos
       buffer.clear ()
-      
-      for (s <- data) 
-        s._2.pass((pos, len))
-      (pos, len)
+      var q = 0
+      for (s <- data){
+        s._2.pass(writePositions(q))
+        q += 1
+      }
+      (beforeAnyWrites, buffer.writePos - beforeAnyWrites)
     }
   }
 }

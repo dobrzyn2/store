@@ -28,6 +28,7 @@ class DiskIOSpec extends FlatSpec {
 
   "The PageReader" should "be able to read the string the PageWriter wrote" in {
     implicit val scheduler = StubScheduler.random()
+    println("--------- Test 1 ---------")
     val a = "this is a string"
     val readPos = 0
     val f = StubFile (1 << 20, 0)
@@ -41,6 +42,7 @@ class DiskIOSpec extends FlatSpec {
 
 
   it should "write and read multiple times to disk" in {
+    println("--------- Test 2 ---------")
     implicit val scheduler = StubScheduler.random()
     val a = "abcdef"
     val b = "123456789"
@@ -51,16 +53,20 @@ class DiskIOSpec extends FlatSpec {
     val dr = new PageReader (f)
     val (posA, lenA) = dsp.write(a) .expectPass()
     val (posB, lenB) = dsp.write(b) .expectPass()
-    val readA = dr.readString (startPos, lenA) .expectPass()
-    val readB = dr.readString (posA,     lenB) .expectPass()
+    val readA = dr.readString (posA, lenA) .expectPass()
+    val readB = dr.readString (posB, lenB) .expectPass()
+    println("posA, lenA: " + posA + " " + lenA + " posB,lenB: " + posB + " " + lenB)
+    println("a is " + a + " readA is " + readA)
+    println("b is " + b + " readB is " + readB)
     assert (a.equals (readA))
     assert (b.equals (readB))
-    assert (posA == startPos + lenA)
-    assert (posB == posA + lenB)
+    assert (posA == 0 )
+    assert (posB == a.length + 1)
   }
 
   it should "write and read correctly out of order" in {
     implicit val scheduler = StubScheduler.random()
+    println("------- Test 3 ------")
     val a = "abcdef"
     val b = "123456789"
     val startPos = 0
@@ -70,12 +76,12 @@ class DiskIOSpec extends FlatSpec {
     val dr = new PageReader (f)
     val (posA, lenA) = dsp.write(a) .expectPass()
     val (posB, lenB) = dsp.write(b) .expectPass()
-    val readB = dr.readString (posA,     lenB) .expectPass()
-    val readA = dr.readString (startPos, lenA) .expectPass()
+    val readB = dr.readString (posB, lenB) .expectPass()
+    val readA = dr.readString (posA, lenA) .expectPass()
     assert (a.equals (readA))
     assert (b.equals (readB))
-    assert (posA == startPos + lenA)
-    assert (posB == posA + lenB)
+    assert (posA == 0)
+    assert (posB == a.length + 1)
   }
   
 }
