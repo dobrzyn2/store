@@ -84,34 +84,44 @@ class DiskIOSpec extends FlatSpec {
     assert (posB == a.length + 1)
   }
 
-  it should "be able to write a full batch correctly and then read it " in {
+  //this isn't testing what it should :[ 
+  it should "be able to write a full batch out of order correctly and then read it " in {
     println("------- Test 4 ------")
     implicit val scheduler = StubScheduler.random()
+    val f = StubFile (1 << 20, 0)
     val a = "lorem "
     val b = "ipsum "
     val c = "dolor "
     val d = "sit "
     val e = "amet"
-    val f = StubFile (1 << 20, 0)
     val dsp = new PageDispatcher(0)
-    //makes it pass
+    val a_callback = dsp.write(a)
+    val b_callback = dsp.write(b)
+    val c_callback = dsp.write(c)
+    val d_callback = dsp.write(d)
+    val e_callback = dsp.write(e)
     val dw = new PageWriter (dsp, f)
-    val (posA, lenA) = dsp.write(a).expectPass()
-    val (posB, lenB) = dsp.write(b).expectPass()
-    val (posC, lenC) = dsp.write(c).expectPass()
-    val (posD, lenD) = dsp.write(d).expectPass()
-    val (posE, lenE) = dsp.write(e).expectPass()
-    //makes it not pass
-    //val dw = new PageWriter (dsp, f)
+    val (posA, lenA) = a_callback.expectPass()
+    val (posB, lenB) = b_callback.expectPass()
+    val (posE, lenE) = e_callback.expectPass()
+    val (posC, lenC) = c_callback.expectPass()
+    val (posD, lenD) = d_callback.expectPass()
     val dr = new PageReader (f)
     val readB = dr.readString (posB, lenB) .expectPass()
     val readA = dr.readString (posA, lenA) .expectPass()
+    val readE = dr.readString (posE, lenE) .expectPass()
+    val readD = dr.readString (posD, lenD) .expectPass()
+    val readC = dr.readString (posC, lenC) .expectPass()
     assert (a.equals (readA))
     assert (b.equals (readB))
+    assert (c.equals (readC))
+    assert (d.equals (readD))
+    assert (e.equals (readE))
     assert (posA == 0)
-    assert (posB == a.length + 1)
-
-
+    assert (posB == a.length+1)
+    assert (posC == (a.length+1) + (b.length+1) + (e.length+1))
+    assert (posD == (a.length+1) + (b.length+1) + (e.length+1) + (c.length+1))
+    assert (posE == (a.length+1) + (b.length+1))
   }
   
 }

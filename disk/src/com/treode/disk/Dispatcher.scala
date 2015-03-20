@@ -33,8 +33,9 @@ private class Dispatcher [M] (implicit
 
   private type R = Callback [(Long, UnrolledBuffer [M])]
 
-  private var messages = new UnrolledBuffer [M]
-  private var _batch = 0L
+  //private var messages = new UnrolledBuffer [M]
+  var messages = new UnrolledBuffer[M]
+   var _batch = 0L
 
   // TODO: visible for testing, make it private
   val receivers = new ArrayDeque [R]
