@@ -19,6 +19,8 @@ package com.treode.disk.edit
 import com.treode.async.io.File
 import com.treode.async.Async
 import com.treode.buffer.PagedBuffer
+import com.treode.disk.PageDescriptor
+import com.treode.disk.Position
 
 private class PageReader (
   val file: File
@@ -39,4 +41,18 @@ private class PageReader (
       buffer.readString ()
     }
   }
+
+
+// we ignore the type param of PageDescriptor for now and only focus on one disk
+  def read [P] (pd : PageDescriptor[P], pos: Position): Async[P] = {
+    buffer.clear()
+    assert(pos.disk == 0)
+    for {
+      _ <- file.fill (buffer, pos.offset, pos.length) 
+    } yield {
+      pd.ppag.unpickle(buffer)
+    }
+  }
+
+
 }

@@ -1,6 +1,8 @@
 /*
  * Copyright 2014 Treode, Inc.
- *
+ *In Disk.scala, read is
+def read [P] (desc: PageDescriptor [P], pos: Position): Async [P]
+it's not a special method for pickled pages. it is the method. you should no longer have a read without a descriptor
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -23,17 +25,21 @@ import com.treode.buffer.PagedBuffer
 import com.treode.disk.Dispatcher
 import scala.collection.mutable.UnrolledBuffer
 import com.treode.async.{Async, Callback, Fiber, Scheduler }, Async.async
+import com.treode.disk.PickledPage
+import com.treode.disk.PageDescriptor
+import scala.reflect.ClassTag
+import com.treode.disk.Position
+import com.treode.pickle.Pickler
+import com.treode.disk.ObjectId
 
 
-private class PageDispatcher(private var counter: Long)
- (implicit
-  scheduler: Scheduler
-) extends Dispatcher [(String, Callback[(Long, Long)])] 
-{
-  def write (data: String) : Async [(Long, Long)] = {
-    async { cb => 
-    val batch = (data, cb)
-    send(batch) 
-  }
-}
+import com.treode.async.{Async, Callback, Scheduler}
+
+private class PageDispatcher(private var counter: Long) 
+	(implicit scheduler: Scheduler) extends Dispatcher [PickledPage] {
+
+def write [P] (desc: PageDescriptor [P], obj: ObjectId, gen: Long, page: P): Async [Position] =
+	async { cb => 
+		send (PickledPage (desc, obj, gen, page, cb))
+	}
 }

@@ -20,6 +20,9 @@ import com.treode.async.Async
 import com.treode.buffer.PagedBuffer
 import scala.collection.mutable.UnrolledBuffer
 import com.treode.async.implicits._
+import com.treode.disk.Position
+import com.treode.async.{Async, Callback, Scheduler}, Async.async
+import com.treode.disk.PickledPage
 
 private class PageWriter(dsp: PageDispatcher,val file: File)
  {
@@ -33,18 +36,44 @@ private class PageWriter(dsp: PageDispatcher,val file: File)
 
   def listen(): Async[Unit] =
     for {
-      (_, strings) <- dispatcher.receive()    //returns (unrolledBuffer,cb)
-      _ <- write(strings)
+      (_, dataBuffers) <- dispatcher.receive()    //returns (unrolledBuffer,cb)
+      _ <- write(dataBuffers)
     } yield {
       listen() run (ignore)
     }
 
+
+// we ignore the type param of PageDescriptor for now and only focus on one disk
+   def write(data: UnrolledBuffer[PickledPage]): Async [Unit] = {
+    var writePositions : Array[Position] = new Array[Position](0);
+    var beforeAnyWrites = pos
+    var i = 0; 
+    for (s <- data) {
+      val beforeEachWritePos = buffer.writePos
+      s.write(buffer)
+      val writeLen : Long = (buffer.writePos - beforeEachWritePos).toLong
+      writePositions :+= (Position(0,pos.toLong, writeLen.toInt))//only focus on one disk for now
+      pos += writeLen
+      i += 1
+    }
+    for {
+      _ <- file.flush (buffer, beforeAnyWrites)
+    } yield {
+      buffer.clear ()
+      var q = 0
+      for (s <- data){
+        s.cb.pass(writePositions(q))
+        q += 1
+      }
+    }
+  }
+
   /**
    * Write `data` into the file asynchronously, using a write buffer. Returns
-   * the position of the writer and length written, if successful.
+   * the position where the batch was written and length of the batch written, if successful.
+   * Returns each individual string in the batch's position & length to the relevant callback
    */
-  def write (data: UnrolledBuffer [(String, Callback[(Long, Long)])]) : Async [(Long, Long)] = {
-    println("start write>>")
+  def writeString (data: UnrolledBuffer [(String, Callback[(Long, Long)])]) : Async [(Long, Long)] = {
     var writePositions : Array[(Long,Long)] = new Array[(Long,Long)](0);
     var beforeAnyWrites = pos
     var i = 0; 
@@ -56,13 +85,6 @@ private class PageWriter(dsp: PageDispatcher,val file: File)
       pos += writeLen
       i += 1
     }
-    println("write pos after writing " + buffer.writePos)
-    println("writePos Array" + writePositions.mkString(" "))
-    for(a <- 1 until writePositions.length)
-    {
-      print(" > " + writePositions(a))
-    }
-    println("-*-*")
     for {
       _ <- file.flush (buffer, beforeAnyWrites)
     } yield {
@@ -75,4 +97,5 @@ private class PageWriter(dsp: PageDispatcher,val file: File)
       (beforeAnyWrites, buffer.writePos - beforeAnyWrites)
     }
   }
+
 }
