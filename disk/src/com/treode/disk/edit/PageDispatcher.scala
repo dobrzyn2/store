@@ -35,10 +35,26 @@ import com.treode.disk.ObjectId
 
 import com.treode.async.{Async, Callback, Scheduler}
 
-private class PageDispatcher(private var counter: Long) 
-	(implicit scheduler: Scheduler) extends Dispatcher [PickledPage] {
 
-def write [P] (desc: PageDescriptor [P], obj: ObjectId, gen: Long, page: P): Async [Position] =
+
+
+/**	
+	A page dispatcher schedules writes to be written to a disk.
+
+
+	Schedules a PageDescriptor to be written to disk using
+	implicit scheduler passed.
+ **/
+private class PageDispatcher(implicit scheduler: Scheduler)
+ extends Dispatcher [PickledPage] {
+
+/*
+	Schedules a PageDescriptor with an objectId, generation, and page
+	to be written as a pickled object to disk
+	Returns Position object where PageDescriptor was written
+ */
+def write [P] (desc: PageDescriptor [P], obj: ObjectId, gen: Long, page: P): 
+				Async [Position] =
 	async { cb => 
 		send (PickledPage (desc, obj, gen, page, cb))
 	}

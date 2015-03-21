@@ -24,26 +24,43 @@ import com.treode.disk.Position
 import com.treode.async.{Async, Callback, Scheduler}, Async.async
 import com.treode.disk.PickledPage
 
+
+
+/*
+    PageWriters get items to write from a PageDispatcher and
+    write them to a file.
+ */
 private class PageWriter(dsp: PageDispatcher,val file: File)
  {
   val bits = 10
   val buffer = PagedBuffer (bits)
-  var pos : Long = buffer.writePos
+  // we maintain an internal pointer into the file for where to write
+  // in order to preserve consistency between writes.
+  var pos : Long = buffer.writePos 
   val dispatcher = dsp
   
 
+  // we consistently check to see if we have anything to write.
   listen() run (ignore)
 
+
+  /*
+    This polls the attached PageDispatcher for items to write to the
+    attached file.
+   */
   def listen(): Async[Unit] =
     for {
-      (_, dataBuffers) <- dispatcher.receive()    //returns (unrolledBuffer,cb)
+      (_, dataBuffers) <- dispatcher.receive()
       _ <- write(dataBuffers)
     } yield {
       listen() run (ignore)
     }
 
-
-// we ignore the type param of PageDescriptor for now and only focus on one disk
+    /*
+      Write all of the PickledPages data in the UnrolledBuffer 
+      to the file, then return the position where the PickledPages were
+      written to the callback inside the PickledPage.   
+     */
    def write(data: UnrolledBuffer[PickledPage]): Async [Unit] = {
     var writePositions : Array[Position] = new Array[Position](0);
     var beforeAnyWrites = pos
@@ -71,7 +88,7 @@ private class PageWriter(dsp: PageDispatcher,val file: File)
   /**
    * Write `data` into the file asynchronously, using a write buffer. Returns
    * the position where the batch was written and length of the batch written, if successful.
-   * Returns each individual string in the batch's position & length to the relevant callback
+   * Returns each individual string in the batch's position & length to the relevant callback.
    */
   def writeString (data: UnrolledBuffer [(String, Callback[(Long, Long)])]) : Async [(Long, Long)] = {
     var writePositions : Array[(Long,Long)] = new Array[(Long,Long)](0);

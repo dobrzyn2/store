@@ -42,7 +42,7 @@ class DiskIOSpec extends FlatSpec {
     val b = "a string!"
     val readPos = 0
     val f = StubFile (1 << 20, 0)
-    val dsp = new PageDispatcher(0)
+    val dsp = new PageDispatcher
     val dw = new PageWriter (dsp, f)
     val dr = new PageReader (f)
     
@@ -50,7 +50,6 @@ class DiskIOSpec extends FlatSpec {
     val posA = dsp.write(pDesc, 0, 0, (a,b) ) .expectPass()
     val readString = dr.read(pDesc, posA).expectPass()
     assert ((a,b).equals (readString))
-
   }
 
   "The DiskIO Reader/Writer " should " be able to write and read multiple times to disk" in {
@@ -65,7 +64,7 @@ class DiskIOSpec extends FlatSpec {
     val b = "123456789"
     val startPos = 0
     val f = StubFile (1 << 20, 0)
-    val dsp = new PageDispatcher(0)
+    val dsp = new PageDispatcher
     val dw = new PageWriter (dsp,f)
     val dr = new PageReader (f)
     val pDesc = PageDescriptor(0x25, stringPickler)
@@ -91,7 +90,7 @@ class DiskIOSpec extends FlatSpec {
     val b = "123456789"
     val startPos = 0
     val f = StubFile (1 << 20, 0)
-    val dsp = new PageDispatcher(0)
+    val dsp = new PageDispatcher
     val dw = new PageWriter (dsp,f)
     val dr = new PageReader (f)
     val pDesc = PageDescriptor(0x25, stringPickler)
@@ -116,7 +115,7 @@ class DiskIOSpec extends FlatSpec {
     val b = "ipsum "
     val c = "dolor "
     val d = "sit "
-    val dsp = new PageDispatcher(0)
+    val dsp = new PageDispatcher
     val pDesc = PageDescriptor(0x25, stringPickler)
     //the following are purposely done out of order
     val ad_callback = dsp.write(pDesc, 0, 0, (a,d) ).capture()
@@ -147,7 +146,7 @@ class DiskIOSpec extends FlatSpec {
     val f = StubFile (1 << 20, 0)
     val (aS, aL, aI) = ("a", 12L, 24)
     val (bS, bL, bI) = ("b", 15L, 30)
-    val dsp = new PageDispatcher(0)
+    val dsp = new PageDispatcher
     val pDesc = PageDescriptor(0x25, multiPickler)
     //the following are purposely done out of order
     val a_callback = dsp.write(pDesc, 0, 0, (aS, aL, aI) ).capture()

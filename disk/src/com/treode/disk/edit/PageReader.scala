@@ -29,6 +29,21 @@ private class PageReader (
   val bits = 10
   val buffer = PagedBuffer (bits)
 
+  /*
+      We read a P-type object from the location at pos using the 
+      Pickler embedded in the PageDescriptor to unpickle the object  
+   */
+  def read [P] (pd : PageDescriptor[P], pos: Position): Async[P] = {
+    buffer.clear()
+    assert(pos.disk == 0)
+    for {
+      _ <- file.fill (buffer, pos.offset, pos.length) 
+    } yield {
+      pd.ppag.unpickle(buffer)
+    }
+  }
+
+
   /**
    * Returns (if successful) the string of length `length` at `pos` in the
    * file asynchronously, using a read buffer.
@@ -39,18 +54,6 @@ private class PageReader (
       _ <- file.fill (buffer, pos, length.toInt)
     } yield {
       buffer.readString ()
-    }
-  }
-
-
-// we ignore the type param of PageDescriptor for now and only focus on one disk
-  def read [P] (pd : PageDescriptor[P], pos: Position): Async[P] = {
-    buffer.clear()
-    assert(pos.disk == 0)
-    for {
-      _ <- file.fill (buffer, pos.offset, pos.length) 
-    } yield {
-      pd.ppag.unpickle(buffer)
     }
   }
 
