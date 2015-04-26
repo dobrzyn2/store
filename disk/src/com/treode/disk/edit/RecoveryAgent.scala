@@ -71,6 +71,8 @@ private class RecoveryAgent (implicit
   /** The PageDispatcher for the final system. */
   private val pagdsp = new PageDispatcher
 
+  private val ledger = new SegmentLedgerMedic (this)
+
   queue.launch()
 
   private def reengage() {
@@ -130,11 +132,13 @@ private class RecoveryAgent (implicit
           val agent = new DiskAgent (logdsp, pagdsp, drives)
           new LaunchAgent () (scheduler, drives, events, agent)
         }
+        (ledger, writers) <- this.ledger.close () (launch)
       } yield {
+        launch.recover (ledger, writers)
         launch
       }) .run (cb on scheduler)
     } else {
-      scheduler.fail (cb, failures.head.thrown) //new ReattachException (failures))
+      scheduler.fail (cb, new ReattachException (failures))
     }}
 
   private def requireNotStarted (message: String): Unit =
