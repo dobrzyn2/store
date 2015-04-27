@@ -16,28 +16,97 @@
 
  /*
  * DLL : https://www.npmjs.com/package/doubly-linked-list-js
- * SkipList : https://www.npmjs.com/package/skiplist
- * hashtable: https://www.npmjs.com/package/hashtable
+ * SkipList    : https://www.npmjs.com/package/skiplist
+ * hashtable   : https://www.npmjs.com/package/hashtable
+ * http request: https://www.npmjs.com/package/request
  */
 
-//var txclock = require('./TxClock');
+//TODO- handle read and write functionality and specifically max age and no cache restrictions within
+var Txclock = require('./TxClock');
 var http = require('http');
 var Skiplist = require('skiplist');
 var DoublyLinkedList = require('doubly-linked-list-js');
+var request = require('request');
+var RESPONSE = 0;
+var BODY = 1;
 
-function Cache(cache_limit){
+function Cache(cache_limit, server, port, max_age, no_cache){
+	this.server = server;
+	this.port = port;
+	this.max_age = max_age;
+	this.no_cache = no_cache;
 	this.size = 0;
 	this.limit = cache_limit;
-	this.map = {};
-	// should be :(key, value) -> List (cacheTime, valueTime, JSON value)
+	this.map = {};	
 	this.list = new DoublyLinkedList();
-	//should be :(key, table, value_time)
+
 }
 
 Cache.prototype = {
 	constructor: Cache,
+
 	read:function(read_time, table, key, max_age, no_cache){
+		var cache_result = this.get(read_time, table, key);
+		if(cache_result != -1)
+			return cache_result;
+
+		var options = this._get_options(read_time, max_age, no_cache, key, table);
+		//Problem: value is received in callback and table and key exist outside of callback,
+		//aside from creating global variables I am unable to communicate between the read and callback
+		var received = request.get(options, this._read_callback)
+		if(received == undefined)
+			return -1;		
+		var json = received[RESPONSE].responseToJSON();
+		var headers = json["headers"];
+		read_time = headers["ReadTxClock"];
+		value_time = headers["ValueTxClock"];
+		var value = response[BODY];
+		this.put(read_time, value_time, table, key, value);	
+		return this.get(read_time, table, key);
+	},
+
+	_read_callback:function(error, response, body)
+	{
+
+		if(!error && response.statusCode == 200)	//success
+			return [respose, body];	
+		return undefined;
+
 		
+	},
+	_construct_path:function(key, table)
+	{
+		return this.server + ":" + this.port + "/" + table + "/" + key;
+	},
+	_get_options:function(read_time, max_age, no_cache, key, table, condition_time)
+	{
+		var _url = this.server + ":" + this.port + "/" + table + "/" + key;
+		var option;
+		if(typeof condition_time === 'undefined')
+		{
+			option = {
+			url:_url,
+			headers: {
+					ReadTxClock:read_time,
+					CacheControl:no_cache
+				}
+			}
+			return option;
+			
+		}
+		else
+		{
+			option = {
+				url:_url,
+				headers: {
+					ReadTxClock:read_time,
+					CacheControl:no_cache,
+					IfModifiedSince:condition_time.time(),	//is there a difference?
+					ConditionTxClock:condition_time.time()	
+				}
+			}
+		}
+		return option;
 	},
 		//op_list is a 2d array (table, key) -> (op, value)
 	write:function(condition_time, op_list){
@@ -171,7 +240,7 @@ Cache.prototype = {
 		if(max == undefined)
 			return -1; 							//couldn't find in the cache
 		this.promote(key, table, max.value_time);
-		return max;
+		return max.value;
 	},
 
 	key_gen:function(key, table)
@@ -206,21 +275,53 @@ Cache.prototype = {
 	}
 }
 
-//test code...
+//naive test
+//TODO get real test framework, Junit doesn't work for js, Qunit?
+//many test frameworks for js are specifically built for browsers,
+//not certain if this is an issue
+/*
+var dummy = "abc";
+var c = new Cache(3, dummy, dummy, dummy, dummy);
+c.put(4,3,"fruit","apple","red");
+c.put(5,4,"fruit","banana","yellow");
+c.put(7,6,"fruit","orange","orange");
+c.put(9,8,"fruit","banana","green");
+
+//regular test
+if(c.get(100,"fruit","orange") == "orange")
+	console.log("Pass 0");
+
+//eviction test
+if(c.get(100,"fruit","apple") == -1)
+	console.log("Pass 1");
+
+//test read_time 1
+if(c.get(100,"fruit","banana") == "green")
+	console.log("Pass 2");
+
+//test read_time 2
+if(c.get(4,"fruit","banana") == "yellow")
+	console.log("Pass 3");
+*/
 //put(read_time, value_time, table, key, value)
-var c = new Cache(3);
-c.put(1, 2, "t1", "k1", 1);
-c.put(3, 4, "t2", "k2", 2);
-c.put(5, 6, "t1", "t1", 3);
-c.get(4,"t2","k2");
-c.put(10,10,"t1","t1",10);
-c.put(7, 8, "t4", "k4", 4);
-for(var i in c.map)
+/*
+var cache_size = 100;
+var num_entries = 1000;
+var max_size = 10000;
+var c = new Cache(cache_size, "bbc.com", "80", undefined, false);
+for(var i = 0; i < max_size; i++)
 {
-	console.log(c.map[i]);
-	//for(var x in c.map[i])
-	//		console.log(c.map[i][x]);
+	c.put( Math.random()*max_size,
+		Math.random()*max_size,
+		Math.random()*max_size,
+		Math.random()*max_size,
+		Math.random()*max_size );
 }
+*/
+//for(var i in Object.keys(c.map))
+//	console.log(i);
+//console.log(Object.keys(c.map));
+//console.log(Object.keys(c.map).len());
 
 
 	
