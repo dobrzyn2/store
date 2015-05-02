@@ -99,6 +99,7 @@ cache_map.prototype = {
 				return 1;
 			}
 		}
+
 		var list_entry = {
 			key:key, 
 			table:table, 
@@ -107,7 +108,7 @@ cache_map.prototype = {
 			value:value
 		};
 		this.list.add(list_entry);
-		this.map[k].push(this.list._getAt(LRU_POS));
+		this.map[k].push(this.list._tail);
 		this.size++;
 		this.prune();
 		return 1;
@@ -118,10 +119,8 @@ cache_map.prototype = {
 	prune:function()
 	{
 		while(this.size > this.limit)
-		{
 			this.evict_one();		
-			
-		}
+		
 	},
 
 	//DONE
@@ -132,13 +131,23 @@ cache_map.prototype = {
 		var lru     = this.list.removeAt(LRU_POS);
 		var key     = this.key_gen(lru.key,lru.table);
 		var array   = this.map[key];
-		for(var i in array)
-			if(array[i].data.value_time.get_time() == lru.value_time.get_time())
-				delete this.map[key][i];
-		this.size--;
-		if(this.map[key].length == 0)
-			delete this.map[key];
 		
+		for(var i in this.map[key])
+		{
+			var lru_time = lru.value_time.get_time();
+			var cur_time = this.map[key][i].data.value_time.get_time();
+
+			if(cur_time === lru_time)
+			{
+				this.map[key].splice(i, 1);			//will remove cell from array
+				this.size--;		
+			}
+		}
+		
+		if(this.map[key].length == 0)
+		{
+			delete this.map[key];
+		}
 	},
 	//DONE
 	get:function(read_time, table, key)
@@ -249,14 +258,15 @@ module.exports = cache_map;
 //many test frameworks for js are specifically built for browsers,
 //not certain if this is an issue
 
-/*
-var c = new cache_map(1);
-c.put(4,3,"fruit","a","red");
-c.put(7,7,"fruit","b","yellow");
-c.put(10,10,"cat","calico","ave");
+
+//var c = new cache_map(3);
+/*c.put(1,1,"a","b","c");
+c.put(2,2,"a","b","d");
+c.put(3,3,"a","b","e");
+
 for(var i in c.map)
 	for(var x in c.map[i])
-		console.log(c.map[i][x].data);
+		console.log(c.map[i][x].data.value);
 */
 //c.list.makeLinear();
 //should get yellow xy za

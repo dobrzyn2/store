@@ -32,6 +32,8 @@ describe('cache_map.put()',function(){
 		c.put(3,4,"key","table","val_2");
 		c.put(5,6,"key","table","val_3");
 
+
+
 		var count_keys = 0;
 		var count_len  = 0;
 		for(var i in c.map)
@@ -48,7 +50,7 @@ describe('cache_map.put()',function(){
 		
 	});
 
-	it('evict the first three items placed in cache p1', function(done){
+	it('should evict the first three items placed in cache p1', function(done){
 		var cache_size = 3;
 		var pass_condition_1 = true;
 		var pass_condition_2 = true;
@@ -70,23 +72,60 @@ describe('cache_map.put()',function(){
 			{
 				count_keys++;
 				var v = arr[i].data.value;
-				console.log(v);
 				if(v != "1" && v != "2" && v != "3")
 					pass_condition_1 &= false;
 
-				
 				if(v == "a" || v == "b" || v == "c")
 					pass_condition_2 &= false;
 				
 			}
 		}
 		var pass_condition = pass_condition_1 && pass_condition_2;
-		console.log(pass_condition);
 		if(pass_condition == false)
 			return -1;
 
 		pass_condition &= (count_keys == cache_size);
-		console.log(pass_condition);
+		if(pass_condition)
+			done();
+		else return -1;
+		
+	});
+
+	it('should evict the first three items placed in cache p2', function(done){
+		var cache_size = 3;
+		var pass_condition_1 = true;
+		var pass_condition_2 = true;
+		var c = new cache_map(cache_size);
+
+		c.put(1,1,"table","key","a");
+		c.put(2,2,"table","key","b");
+		c.put(3,3,"table","key","c");
+		c.put(4,4,"table","key","1");
+		c.put(5,5,"table","key","2");
+		c.put(6,6,"table","key","3");
+
+
+		var count_keys = 0;
+		for(var key in c.map)
+		{
+			var arr = c.map[key];
+			for(var i in c.map[key])
+			{
+				count_keys++;
+				var v = arr[i].data.value;
+				if(v != "1" && v != "2" && v != "3")
+					pass_condition_1 &= false;
+
+				if(v == "a" || v == "b" || v == "c")
+					pass_condition_2 &= false;
+				
+			}
+		}
+		var pass_condition = pass_condition_1 && pass_condition_2;
+		if(pass_condition == false)
+			return -1;
+
+		pass_condition &= (count_keys == cache_size);
 		if(pass_condition)
 			done();
 		else return -1;
