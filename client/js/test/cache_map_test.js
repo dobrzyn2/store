@@ -326,7 +326,7 @@ describe('cache_map.get()',function(){
 		else return -1;
 	});
 	//should ensure getting promotes to mru
-	it('should promote a get request to most recently used p1', function(done){
+	it('should promote a get request to most recently used', function(done){
 		var late_time  = 100;
 		var early_time = 1
 		var cache_size = 3;
@@ -340,7 +340,7 @@ describe('cache_map.get()',function(){
 		c.put(70,80,"device","phone", "cell");
 		c.put(80,90,"U.S","Chicago","park");
 	
-		if(c.get(late_time,"sport","tenns") != -1)
+		if(c.get(late_time,"sport","tennis") != -1)			//should get evicted
 			pass_condition &= false;
 		if(c.get(late_time,"fruit","apple").value != "a")
 			pass_condition &= false;
@@ -354,6 +354,39 @@ describe('cache_map.get()',function(){
 	});
 	//should ensure we dont have access to things outside of cachelimits
 
+	it('should miss on entries outside of cache and non existent entries', function(done){
+	
+		var late_time = 100;
+		var early_time = 1;
+		var cache_size = 3;
+		var c  = new cache_map(cache_size);
+		var pass_condition = true;
+
+		c.put(10,10,"k","t","v0");	
+		c.put(11,11,"k","t","v1");	
+		c.put(12,12,"k","t","v2");	
+		c.get(10,"k","t");
+		c.put(14,14,"fruit","apple","red");	
+
+		if(c.get(9,"k","t") != -1)
+			pass_condition &= false;
+	
+		if(c.get(15,"fruit","apple").value != "red")
+			pass_condition &= false;
+		
+		if(c.get(10,"k","t").value != "v0")
+			pass_condition &= false;
+	
+		if(c.get(11,"k","t").value != "v0")
+			pass_condition &= false;
+
+		if(c.get(late_time,"key","table") != -1)
+			pass_condition &= false;
+
+		if(pass_condition)
+			done();
+		return -1;
+	});
 
 });
 

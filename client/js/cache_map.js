@@ -16,12 +16,14 @@
 
  /*
  * DLL : https://www.npmjs.com/package/doubly-linked-list-js
+ * DLL internals : https://github.com/adriano-di-giovanni/doubly-linked-list-js/blob/master/DoublyLinkedList.js
  */
 
 
 var tx_clock         = require('./tx_clock');
 var DoublyLinkedList = require('doubly-linked-list-js');
 var LRU_POS = 0;
+
 //TODO: Find out if makeLinear affects the state of the dll in a significant way
 
 function cache_map(cache_limit){
@@ -86,7 +88,7 @@ cache_map.prototype = {
 		var k = this.key_gen(key, table);
 		for(var i in this.map[k])			//for each key:table
 		{
-			var cur_val_time   = this.map[k][i].data.value_time.get_time();
+			var cur_val_time   = this.getValTime(this.map[k][i]);
 			var param_val_time = value_time.get_time();
 			
 			if(cur_val_time == param_val_time)
@@ -135,7 +137,7 @@ cache_map.prototype = {
 		for(var i in this.map[key])
 		{
 			var lru_time = lru.value_time.get_time();
-			var cur_time = this.map[key][i].data.value_time.get_time();
+			var cur_time = this.getValTime(this.map[key][i]);
 
 			if(cur_time === lru_time)
 			{
@@ -153,7 +155,7 @@ cache_map.prototype = {
 	get:function(read_time, table, key)
 	{
 		
-		//1)search map for table:key and most recent value_time that is less than or equal to read_time
+		//1)search map for table:key and the most recent value_time on or before the given read_time
 		//2)promute the use time in this.list
 		if(read_time.constructor == Number)
 			read_time = new tx_clock(read_time);
@@ -168,9 +170,9 @@ cache_map.prototype = {
 		var found_first = false;		//select the first plausible object
 		for(var i in this.map[k])
 		{
-			var val_time = this.map[k][i].data.value_time.get_time();
+			var val_time = this.getValTime(this.map[k][i]);
 			var r_time   = read_time.get_time();
-			if(val_time <= r_time && !found_first)
+			if(val_time <= r_time && !found_first) 
 			{
 				max = this.map[k][i];
 				found_first = true;
@@ -178,10 +180,9 @@ cache_map.prototype = {
 			}
 			if(found_first)
 			{
-				var map_object   = this.map[k][i].data;
-				var val_time     = map_object.value_time.get_time();
+				var val_time     = this.getValTime(this.map[k][i]);
 				var r_time       = read_time.get_time();
-				var max_val_time = max.data.value_time.get_time();
+				var max_val_time = this.getValTime(max);
 				if(val_time <= r_time && val_time > max_val_time)
 					max = this.map[k][i];
 			}	
@@ -192,7 +193,7 @@ cache_map.prototype = {
 		this.promote(max);
 		
 		var data   = max.data;
-		var v_time = data.value_time.get_time();
+		var v_time = this.getValTime(max);
 		var c_time = data.cached_time.get_time();
 		var val    = data.value;
 		
@@ -249,6 +250,10 @@ cache_map.prototype = {
 		if(a > b)
 			return a;
 		return b;
+	},
+
+	getValTime:function(obj){
+		return obj.data.value_time.get_time();
 	}
 }
 module.exports = cache_map;
