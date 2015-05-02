@@ -253,53 +253,5 @@ cache_map.prototype = {
 }
 module.exports = cache_map;
 
-//naive test
-//TODO get real test framework, Junit doesn't work for js, Qunit?
-//many test frameworks for js are specifically built for browsers,
-//not certain if this is an issue
 
 
-//var c = new cache_map(3);
-/*c.put(1,1,"a","b","c");
-c.put(2,2,"a","b","d");
-c.put(3,3,"a","b","e");
-
-for(var i in c.map)
-	for(var x in c.map[i])
-		console.log(c.map[i][x].data.value);
-*/
-//c.list.makeLinear();
-//should get yellow xy za
-
-//for(var i = 0; i < c.size; i++)
-//	console.log(c.list._getAt(i).data);
-//console.log("tail ");
-//console.log(c.list._tail.data);
-//for(var i in c.map)
-//	console.log(c.map[i]);
-//console.log(c.map["apple:fruit"]);
-//console.log(c.list._tail);
-//console.log(c.list._head);
-/*
-c.put(5,4,"fruit","banana","yellow");
-c.put(7,6,"fruit","orange","orange");
-c.put(9,8,"fruit","banana","green");
-
-//regular test
-if(c.get(100,"fruit","orange") == "orange")
-	console.log("Pass 0");
-
-//eviction test
-if(c.get(100,"fruit","apple") == -1)
-	console.log("Pass 1");
-
-//test read_time 1
-if(c.get(100,"fruit","banana") == "green")
-	console.log("Pass 2");
-
-//test read_time 2
-if(c.get(4,"fruit","banana") == "yellow")
-	console.log("Pass 3");
-*/
-
-	
