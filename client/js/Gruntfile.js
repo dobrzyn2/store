@@ -1,5 +1,12 @@
 /*global module:false*/
+
 module.exports = function(grunt) {
+
+  karma: {
+  unit: {
+    configFile: 'karma.conf.js'
+  }
+}
 
   // Project configuration.
   grunt.initConfig({
@@ -45,6 +52,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-nodeunit');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-karma');
 
   // Default task.
  // grunt.registerTask('default', ['jshint', 'nodeunit']);
