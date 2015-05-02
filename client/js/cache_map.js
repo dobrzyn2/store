@@ -21,32 +21,30 @@
 
 
 var tx_clock         = require('./tx_clock');
-var DoublyLinkedList = require('doubly-linked-list-js');
+var DoublyLinkedList = require('doubly-linked-list-js');		//keeps track of mru and lru
 var LRU_POS = 0;
 
-//TODO: Find out if makeLinear affects the state of the dll in a significant way
+/**
+*	Constructor
+*/
 
 function cache_map(cache_limit){
-	
 	this.size  = 0;
 	this.limit = cache_limit;
 	this.map   = {};	
 	this.list  = new DoublyLinkedList();
-	this.list.makeLinear();
-
 }
 
 cache_map.prototype = {
 	constructor: cache_map,
 
-	//DONE
+	/*
+	* Description: Converts input params into tx_clocks, based on whether there exists
+	*			an associated list for the give key,value we either append the list or
+	*			create a brand new entry in the map. 	
+	*/
 	put:function(read_time, value_time, table, key, value)
 	{
-		//1) look up map for table:key and same value_time.
-		//2) If found
-		//		set the cached_time to greater of the read_time or cached_time within the tuple
-		//3)else add a new tuple 
-		//4)remove lru tuple *in the cache*
 		if(read_time.constructor == Number)
 			read_time = new tx_clock(read_time);
 		if(value_time.constructor == Number)
@@ -54,13 +52,18 @@ cache_map.prototype = {
 
 		var k     = this.key_gen(key, table);
 		var array = this.map[k];
-		if(array === undefined)
+		if(array === undefined)					//there exists no entry for that key
 			this.addList(read_time, value_time, table, key, value);
 		else
 			this.appendList(read_time, value_time, table, key, value);
 		
 	},
-	//DONE
+
+	/*
+	*	Description: subroutine for creating new entry in map. Will generate
+	*			new object entry and insert into list, then place reference to 
+	*			list entry into a new list in the object map
+	*/
 	addList:function(read_time, value_time, table, key, value)
 	{
 		//create new entry in map
@@ -76,13 +79,20 @@ cache_map.prototype = {
 		};
 
 		this.list.add(list_entry);				//currently at the tail, need to push to head..
-		this.map[k] = [this.list._tail];	//pass reference to dll node
+		this.map[k] = [this.list._tail];		//list containing reference to list obj
 		this.size++;
 		this.prune();
 		return;
 
 	},
-	//DONE
+
+	/*
+	*	Description: subroutine for appending to an existing list for a specific key
+	*			Checks for an element in our list which contains a value_time equal
+	*			to the value_time we are inserting. If so, update the cached_time to 
+	*			the later of the element's cached_time and the read_time parameter.
+	*			If updating, promote list element to mru, otherwise create a new entry
+	*/
 	appendList:function(read_time, value_time, table, key, value)
 	{
 		var k = this.key_gen(key, table);
@@ -117,7 +127,10 @@ cache_map.prototype = {
 
 		
 	},
-	//DONE
+	
+	/*
+	*	Description: wrapper function to remove the lru object from list and map
+	*/
 	prune:function()
 	{
 		while(this.size > this.limit)
@@ -125,11 +138,14 @@ cache_map.prototype = {
 		
 	},
 
-	//DONE
+	/*
+	*	Description: Designed to remove the lru element from the list and then remove the 
+	*			empty entry from the map. If removal of the map element results in an empty
+	*			list then we completely remove the entry in the map. In this implementation
+	*			of the linked list, the lru entry is at the head of the list.
+	*/
 	evict_one:function()
 	{
-		
-		//var lru     = this.list._head;
 		var lru     = this.list.removeAt(LRU_POS);
 		var key     = this.key_gen(lru.key,lru.table);
 		var array   = this.map[key];
@@ -146,39 +162,51 @@ cache_map.prototype = {
 			}
 		}
 		
+		//check for an empty list length and remove key entirely if empty
 		if(this.map[key].length == 0)
 		{
 			delete this.map[key];
 		}
 	},
-	//DONE
+	
+	/*
+	*	Description: retrives a tuple of value_time, cached_time, and value based
+	*			on the time we are reading for a given object associated with the
+	*			given table and key. Finding a specific element requires finding a
+	*			an element whose value was written sometime before we are reading, 
+	*			from that subset of elements we choose the maximum value_time.
+	*			Finally, the element that we find gets promoted.
+	*/
 	get:function(read_time, table, key)
 	{
 		
 		//1)search map for table:key and the most recent value_time on or before the given read_time
 		//2)promute the use time in this.list
+	
+		//convert read_time param to a tx_clock 
 		if(read_time.constructor == Number)
 			read_time = new tx_clock(read_time);
 
 		var k = this.key_gen(key, table);
 		var array = this.map[k];
 		
+		//check for a completely invalid key, table pair
 		if(array == undefined || array.length == 0)
 			return -1;
 
 		var max         = undefined; 			//maybe we won't find anything
-		var found_first = false;		//select the first plausible object
+		var found_first = false;				//select the first plausible object
 		for(var i in this.map[k])
 		{
 			var val_time = this.getValTime(this.map[k][i]);
 			var r_time   = read_time.get_time();
-			if(val_time <= r_time && !found_first) 
+			if(val_time <= r_time && !found_first) 		//so we can set the max to the first eligible val.
 			{
 				max = this.map[k][i];
 				found_first = true;
 				continue;
 			}
-			if(found_first)
+			if(found_first)						//so we don't worry about reading an invalid 'max'
 			{
 				var val_time     = this.getValTime(this.map[k][i]);
 				var r_time       = read_time.get_time();
@@ -189,7 +217,7 @@ cache_map.prototype = {
 		}
 		if(max == undefined)
 			return -1; 							//couldn't find in the cache
-		this.list.makeLinear();
+		
 		this.promote(max);
 		
 		var data   = max.data;
@@ -204,11 +232,23 @@ cache_map.prototype = {
 		};
 	},
 
+	/*
+	*	Description: generates a single string for a given key and table. 
+	*			This format is used to read and write to the internal map.
+	*/
 	key_gen:function(key, table)
 	{
 		return key + ":" + table;
 	},
 
+	/*
+	*	Description: promotes a given list element to the front of our dll.
+	*			in this implementation of the dll, the mru object is at the tail of the
+	*			list, and the lru is at the head of the list. If the node is at the 
+	*			tail then its already the mru. If node is at the head then we set 
+	*			pointers to create a new head. If node is neither head nor tail then
+	*			rearrange pointers to evict element from cur position and insert at tail.
+	*/
 	promote:function(node)
 	{
 		
@@ -219,14 +259,14 @@ cache_map.prototype = {
 		if(node !== null)
 		{
 			if(isTail)
-				return; 		//we are already at the mru position
+				return; 		//we are already at the mru position 
 			if(isHead)
 			{
-				node.next.previous = null;	//cut off from list
+				node.next.previous = null;				//cut off from list
 				this.list._head = node.next;
-				this.list._tail.next = node;	//add to front
-				node.previous = this.list._tail;	//link to rest
-				this.list._tail = node;			//set pointer to new mru
+				this.list._tail.next = node;			//add to front
+				node.previous = this.list._tail;		//link to rest
+				this.list._tail = node;					//set pointer to new mru
 				return;
 			}
 			node.next.previous = node.previous;
@@ -235,14 +275,6 @@ cache_map.prototype = {
 			node.previous = this.list._tail;
 			this.list._tail = node;
 		}
-	},
-
-	sameNode:function(a, b)
-	{
-		var sameKey = a.data.key == b.data.key;
-		var sameTable = a.data.table == b.data.table;
-		var sameValue_time = a.data.value_time == b.data.value_time;
-		return sameKey && sameTable && sameValue_time;
 	},
 
 	max:function(a, b)
@@ -256,6 +288,7 @@ cache_map.prototype = {
 		return obj.data.value_time.get_time();
 	}
 }
+
 module.exports = cache_map;
 
 
