@@ -32,12 +32,27 @@ function cache_map(cache_limit){
 	this.size  = 0;
 	this.limit = cache_limit;
 	this.map   = {};	
-	this.list  = new DoublyLinkedList();
+	this._head = null;
+	this._tail = null;
 }
 
 cache_map.prototype = {
 	constructor: cache_map,
 
+	add:function(node)
+	{
+		if(this.size == 0)
+		{
+			this._head = node; 
+			this._tail = node;
+			return 1;
+		}
+		this._head.next = node;
+		node.previous = this._head;
+		this._head = node;
+		//if(this._tail == null)
+		//	this._tail = node;
+	},
 	/*
 	* Description: Converts input params into tx_clocks, based on whether there exists
 	*			an associated list for the give key,value we either append the list or
@@ -75,11 +90,13 @@ cache_map.prototype = {
 			table:table, 
 			value_time:value_time, 
 			cached_time:read_time, 
-			value:value
+			value:value,
+			next:null,
+			previous:null
 		};
 
-		this.list.add(list_entry);				//currently at the tail, need to push to head..
-		this.map[k] = [this.list._tail];		//list containing reference to list obj
+		this.add(list_entry);				//currently at the tail, need to push to head..
+		this.map[k] = [this._head];			//list containing reference to list obj
 		this.size++;
 		this.prune();
 		return;
@@ -103,10 +120,10 @@ cache_map.prototype = {
 			
 			if(cur_val_time == param_val_time)
 			{
-				var cached_time = this.map[k][i].data.cached_time.get_time();
+				var cached_time = this.map[k][i].cached_time.get_time();
 				var r_time      = read_time.get_time();
 				var optimal     = new tx_clock(this.max(cached_time, r_time));
-				this.map[k][i].data.cached_time = optimal;
+				this.map[k][i].cached_time = optimal;
 				this.promote(this.map[k][i]);					//mru, so promote it
 				return 1;
 			}
@@ -117,10 +134,12 @@ cache_map.prototype = {
 			table:table, 
 			value_time:value_time, 
 			cached_time:read_time, 
-			value:value
+			value:value,
+			next:null,
+			previous:null
 		};
-		this.list.add(list_entry);
-		this.map[k].push(this.list._tail);
+		this.add(list_entry);
+		this.map[k].push(this._head);
 		this.size++;
 		this.prune();
 		return 1;
@@ -146,7 +165,7 @@ cache_map.prototype = {
 	*/
 	evict_one:function()
 	{
-		var lru     = this.list.removeAt(LRU_POS);
+		var lru     = this.removeAt(this.size-1);
 		var key     = this.key_gen(lru.key,lru.table);
 		var array   = this.map[key];
 		
@@ -167,6 +186,40 @@ cache_map.prototype = {
 		{
 			delete this.map[key];
 		}
+	},
+
+	removeAt:function(loc)
+	{
+		
+		var curNode = this._head;
+		while(loc > 0)
+		{	
+			curNode = curNode.previous;
+			loc--;
+		}
+		if(this.size < 2)
+		{
+			this._head = null;
+			this._tail = null;
+			return curNode;
+		}
+		if(curNode.previous == null)	
+		{
+			curNode.next.previous = null;
+			this._tail = curNode.next;
+			return curNode;
+		}
+		if(curNode.next == null)
+		{
+			curNode.previous.next = null;
+			this._head = curNode.previous;
+			return curNode;
+		}
+
+		curNode.previous.next = curNode.next;
+		curNode.next.previous = curNode.previous;
+		return curNode;
+
 	},
 	
 	/*
@@ -220,7 +273,7 @@ cache_map.prototype = {
 		
 		this.promote(max);
 		
-		var data   = max.data;
+		var data   = max;
 		var v_time = this.getValTime(max);
 		var c_time = data.cached_time.get_time();
 		var val    = data.value;
@@ -252,28 +305,28 @@ cache_map.prototype = {
 	promote:function(node)
 	{
 		
-		if(node.previous == null)
-			this.list._head = node;
-		var isHead = this.list._isHead(node);
-		var isTail = this.list._isTail(node);
+		//if(node.previous == null)
+	//		this._head = node;
+		var isHead = this._head == node;
+		var isTail = this._tail == node;
 		if(node !== null)
 		{
-			if(isTail)
-				return; 		//we are already at the mru position 
 			if(isHead)
+				return; 		//we are already at the mru position 
+			if(isTail)
 			{
 				node.next.previous = null;				//cut off from list
-				this.list._head = node.next;
-				this.list._tail.next = node;			//add to front
-				node.previous = this.list._tail;		//link to rest
-				this.list._tail = node;					//set pointer to new mru
+				this._tail = node.next;
+				this._head.next = node;					//add to front
+				node.previous = this._head;				//link to rest
+				this._head = node;						//set pointer to new mru
 				return;
 			}
 			node.next.previous = node.previous;
 			node.previous.next = node.next;
-			this.list._tail.next = node;
-			node.previous = this.list._tail;
-			this.list._tail = node;
+			this._head.next = node;
+			node.previous = this._head;
+			this._head = node;
 		}
 	},
 
@@ -285,7 +338,7 @@ cache_map.prototype = {
 	},
 
 	getValTime:function(obj){
-		return obj.data.value_time.get_time();
+		return obj.value_time.get_time();
 	}
 }
 
