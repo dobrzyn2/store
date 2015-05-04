@@ -15,11 +15,11 @@
  */
 
 /*
-	Run by using 'mocha' on the parent dir of test
+	To run: cd to /client/js/ and run 'mocha'
 */
-var cache_map = require('../cache_map.js');
-var should    = require('should'),
-	supertest = require('supertest');
+var cache_map = require('../src/cache_map.js');
+var test = require('unit.js');
+
 
 //cache_map put tests
 describe('cache_map.put()',function(){
@@ -37,19 +37,21 @@ describe('cache_map.put()',function(){
 		
 		//check that each item gets its own list in the cache
 		var count = 0;
-		for(var i in c.map)
+		for(var i in c._map)
 			count++;
 		//make sure we counted correct number of entries
-		pass_condition = (count == cache_size && c.size == cache_size);
-		if(pass_condition)
-			done();
-		else return -1;
+		
+		test.value(count).isEqualTo(cache_size);
+		test.value(c._size).isEqualTo(cache_size);
+		//assert(c.size == cache_size);
+		done();
+		
 	});
 
 	//maps same key:table with varying value_times and values, 
 	//there should be 3 distinct elements in a single list entry
 
-	it('should place 3 objects with different same keys in the cache ', function(done){
+	it('should place 3 objects with same keys and different values in the cache ', function(done){
 		var cache_size = 3;
 		var pass_condition = false;
 		var c = new cache_map(cache_size);
@@ -60,17 +62,17 @@ describe('cache_map.put()',function(){
 
 		var count_keys = 0;
 		var count_len  = 0;
-		for(var i in c.map)			//for keys in map
+		for(var i in c._map)			//for keys in map
 		{
 			count_keys++;
-			for(var x in c.map[i])	//for entries in map[key]'s list
+			for(var x in c._map[i])	//for entries in map[key]'s list
 				count_len++;
 		}
-		pass_condition  = (count_keys == 1);
-		pass_condition &= (count_len == cache_size);
-		if(pass_condition)
-			done();
-		else return -1;
+		
+		test.value(count_keys).isEqualTo(1);
+		test.value(count_len).isEqualTo(cache_size);
+		done();
+		
 		
 	});
 
@@ -92,31 +94,27 @@ describe('cache_map.put()',function(){
 
 		var count_keys = 0;
 		var count_elements = 0;
-		for(var key in c.map)
+		for(var key in c._map)
 		{
 			count_keys++;
-			var arr = c.map[key];
-			for(var i in c.map[key])
+			var arr = c._map[key];
+			for(var i in c._map[key])
 			{
 				count_elements++;
-				var v = arr[i].data.value;
-				if(v != "1" && v != "2" && v != "3")	//check for valid values without using get
-					pass_condition_1 &= false;
+				var v = arr[i].value;
 
-				if(v == "a" || v == "b" || v == "c")	//check for invalid values without using get
-					pass_condition_2 &= false;
+				var equal = (v == "1") || (v == "2") || (v =="3");	//check for valid 
+				test.value(equal).isEqualTo(true);
+
+				var notEqual = (v != "a" && v != "b" && v != "c");
+				test.value(notEqual).isEqualTo(true);				//check for invalid
 				
 			}
 		}
-		var pass_condition = pass_condition_1 && pass_condition_2;
-		if(pass_condition == false)
-			return -1;
-
-		pass_condition &= (count_elements == cache_size);
-		pass_condition &= (count_keys == cache_size);	//check that we deleted array entirely if empty
-		if(pass_condition)
-			done();
-		else return -1;
+		
+		test.value(count_elements).isEqualTo(cache_size);
+		test.value(count_keys).isEqualTo(cache_size);
+		done();
 		
 	});
 
@@ -137,29 +135,26 @@ describe('cache_map.put()',function(){
 
 
 		var count_keys = 0;
-		for(var key in c.map)				
+		for(var key in c._map)				
 		{
-			var arr = c.map[key];
-			for(var i in c.map[key])		
+			var arr = c._map[key];
+			for(var i in c._map[key])		
 			{
 				count_keys++;
-				var v = arr[i].data.value;
-				if(v != "1" && v != "2" && v != "3")	//check for an valid value
-					pass_condition_1 &= false;
+				var v = arr[i].value;
+				
+				var equal = (v == "1") || (v == "2") || (v =="3");	//check for valid 
+				test.value(equal).isEqualTo(true);
 
-				if(v == "a" || v == "b" || v == "c")	//check for an invalid value
-					pass_condition_2 &= false;
+				var notEqual = (v != "a" && v != "b" && v != "c");
+				test.value(notEqual).isEqualTo(true);				//check for invalid
 				
 			}
 		}
-		var pass_condition = pass_condition_1 && pass_condition_2;
-		if(pass_condition == false)
-			return -1;
-
-		pass_condition &= (count_keys == cache_size);
-		if(pass_condition)
-			done();
-		else return -1;
+		
+		test.value(count_keys).isEqualTo(cache_size);
+		done();
+	
 		
 	});
 	
@@ -180,28 +175,23 @@ describe('cache_map.put()',function(){
 
 
 		var count_keys = 0;
-		for(var key in c.map)					
+		for(var key in c._map)					
 		{
-			var arr = c.map[key];
-			for(var i in c.map[key])			
+			var arr = c._map[key];
+			for(var i in c._map[key])			
 			{
 				count_keys++;
-				var v = arr[i].data.value;
-				if(v != "1" && v != "2" && v != "3")	//check for valid
-					pass_condition_1 &= false;
+				var v = arr[i].value;
 
-				if(v == "a" || v == "b")				//check for invalid
-					pass_condition_2 &= false;
+				var equal = (v == "1") || (v == "2") || (v == "3");
+				var notEqual = (v != "a") && (v != "b");
+				
+				test.value(equal).isEqualTo(true);
+				test.value(notEqual).isEqualTo(true);
 			}
 		}
-		var pass_condition = pass_condition_1 && pass_condition_2;
-		if(pass_condition == false)
-			return -1;
-
-		pass_condition &= (count_keys == cache_size);
-		if(pass_condition)
-			done();
-		else return -1;
+		test.value(count_keys).isEqualTo(cache_size);
+		done();
 		
 	});
 
@@ -222,29 +212,24 @@ describe('cache_map.put()',function(){
 
 
 		var count_keys = 0;
-		for(var key in c.map)				
+		for(var key in c._map)				
 		{
-			var arr = c.map[key];
-			for(var i in c.map[key])
+			var arr = c._map[key];
+			for(var i in c._map[key])
 			{
 				count_keys++;
-				var v = arr[i].data.value;
-				if(v != "a" && v != "1" && v != "2")
-					pass_condition_1 &= false;
-
-				if( v == "b" || v == "c")
-					pass_condition_2 &= false;
+				var v = arr[i].value;
+				
+				var equal = (v == "1") || (v == "2") || (v == "a");
+				var notEqual = (v != "c") && (v != "b");
+				
+				test.value(equal).isEqualTo(true);
+				test.value(notEqual).isEqualTo(true);
 				
 			}
 		}
-		var pass_condition = pass_condition_1 && pass_condition_2;
-		if(pass_condition == false)
-			return -1;
-
-		pass_condition &= (count_keys == cache_size);
-		if(pass_condition)
-			done();
-		else return -1;
+		test.value(count_keys).isEqualTo(cache_size);
+		done();
 		
 	});
 
@@ -266,19 +251,13 @@ describe('cache_map.get()',function(){
 		c.put(3,4,"fruit","banana","b");
 		c.put(5,6,"sport","tennis","c");
 
-
-		if(c.get(late_time,"fruit","apple").value != 'a')
-			pass_condition &= false;
-
-		if(c.get(late_time,"fruit","banana").value != 'b')
-			pass_condition &= false;
-
-		if(c.get(late_time,"sport","tennis").value != 'c')
-			pass_condition &= false;
-
-		if(pass_condition)
-			done();
-		else return -1;
+		var appleGet = c.get(late_time,"fruit","apple").value;
+		var bananaGet = c.get(late_time,"fruit","banana").value;
+		var tennisGet = c.get(late_time,"sport","tennis").value;
+		test.value(appleGet).isEqualTo("a");
+		test.value(bananaGet).isEqualTo("b");
+		test.value(tennisGet).isEqualTo("c");
+		done();
 	});
 
 	//similar test but instead mapping elements to the same key with different value_times
@@ -293,19 +272,15 @@ describe('cache_map.get()',function(){
 		c.put(2,2,"table","key","b");
 		c.put(3,3,"table","key","c");
 
+		var getEarly = c.get(1,"table","key").value;
+		var getMid = c.get(2,"table","key").value;
+		var getLate = c.get(3,"table","key").value;
 
-		if(c.get(1,"table","key").value != 'a')
-			pass_condition &= false;
+		test.value(getEarly).isEqualTo("a");
+		test.value(getMid).isEqualTo("b");
+		test.value(getLate).isEqualTo("c");
 
-		if(c.get(2,"table","key").value != 'b')
-			pass_condition &= false;
-
-		if(c.get(3,"table","key").value != 'c')
-			pass_condition &= false;
-
-		if(pass_condition)
-			done();
-		else return -1;
+		done();
 	});
 
 	//check if reading at earlier time prevents reading values written at a later time
@@ -321,24 +296,20 @@ describe('cache_map.get()',function(){
 		c.put(30,40,"fruit","banana","b");
 		c.put(50,60,"sport","tennis","c");
 
-		if(c.get(late_time,"fruit","apple").value != 'a')
-			pass_condition &= false;
+		var getApple = c.get(late_time,"fruit","apple").value;
+		var getBananaEarly = c.get(early_time,"fruit","banana");
+		var getTennisEarly = c.get(early_time,"sport","tennis");
+		var getBananaLate = c.get(late_time,"fruit","banana").value;
+		var getTennisLate = c.get(late_time,"sport","tennis").value;
 
-		if(c.get(early_time,"fruit","banana") != -1)		//should miss due to early read time
-			pass_condition &= false;
+		test.value(getApple).isEqualTo("a");
+		test.value(getBananaLate).isEqualTo("b");
+		test.value(getTennisLate).isEqualTo("c");
+		test.value(getTennisEarly).isEqualTo(-1);
+		test.value(getBananaEarly).isEqualTo(-1);
 
-		if(c.get(early_time,"sport","tennis") != -1)		//should miss due to early read time
-			pass_condition &= false;
+		done();
 
-		if(c.get(late_time,"fruit","banana").value != "b")		//should hit with later read time
-			pass_condition &= false;
-
-		if(c.get(late_time,"sport","tennis").value != "c")		//should hit with later read time
-			pass_condition &= false;
-
-		if(pass_condition)
-			done();
-		else return -1;
 	});
 
 	it('should miss certain elements due to early read times p2', function(done){
@@ -353,19 +324,15 @@ describe('cache_map.get()',function(){
 		c.put(2,2,"table","key","b");
 		c.put(1,1,"table","key","c");
 		
+		var late = c.get(late_time,"table","key").value;
+		var mid = c.get(med_time,"table","key").value;
+		var early = c.get(early_time,"table","key");
 
-		if(c.get(late_time,"table","key").value != 'a')
-			pass_condition &= false;
+		test.value(late).isEqualTo("a");
+		test.value(mid).isEqualTo("c");
+		test.value(early).isEqualTo(-1);
 
-		if(c.get(early_time,"table","key") != -1)
-			pass_condition &= false;
-		
-		if(c.get(med_time,"table","key").value != 'c')
-			pass_condition &= false;
-		
-		if(pass_condition)
-			done();
-		else return -1;
+		done();
 	});
 
 	//should ensure getting an element promotes that element to mru
@@ -385,25 +352,19 @@ describe('cache_map.get()',function(){
 		c.get(early_time,"fruit","banana");			//will not update to mru
 		c.put(80,90,"U.S","Chicago","park");
 
+		var getTennis = c.get(late_time,"sport","tennis");
+		var getApple = c.get(late_time,"fruit","apple").value;
+		var getPhone = c.get(late_time, "device","phone").value;
+		var getChicago = c.get(late_time, "U.S", "Chicago").value;
+		var getBanana = c.get(late_time,"fruit","banana");
+
+		test.value(getTennis).isEqualTo(-1);
+		test.value(getApple).isEqualTo("a");
+		test.value(getPhone).isEqualTo("cell");
+		test.value(getChicago).isEqualTo("park");
+		test.value(getBanana).isEqualTo(-1);
 	
-		if(c.get(late_time,"sport","tennis") != -1)			//should get evicted
-			pass_condition &= false;
-
-		if(c.get(late_time,"fruit","apple").value != "a")
-			pass_condition &= false;
-
-		if(c.get(late_time, "device","phone").value != "cell")
-			pass_condition &= false;
-
-		if(c.get(late_time, "U.S", "Chicago").value != "park")
-			pass_condition &= false;
-
-		if(c.get(late_time,"fruit","banana") != -1)
-			pass_condition &= false;
-
-		if(pass_condition)
-			done();
-		else return -1;
+		done();
 	});
 	
 	//should ensure we dont have access to things outside of cachelimits
@@ -422,24 +383,20 @@ describe('cache_map.get()',function(){
 		c.get(10,"k","t");
 		c.put(14,14,"fruit","apple","red");	
 
-		if(c.get(9,"k","t") != -1)
-			pass_condition &= false;
-	
-		if(c.get(15,"fruit","apple").value != "red")
-			pass_condition &= false;
-		
-		if(c.get(10,"k","t").value != "v0")
-			pass_condition &= false;
-	
-		if(c.get(11,"k","t").value != "v0")
-			pass_condition &= false;
+		var getEarly = c.get(9,"k","t");
+		var getLate = c.get(15,"fruit","apple").value;
+		var getMidOne = c.get(10,"k","t").value;
+		var getMidTwo = c.get(11,"k","t").value;
+		var getInvalid = c.get(late_time,"key","table");
 
-		if(c.get(late_time,"key","table") != -1)
-			pass_condition &= false;
+		test.value(getEarly).isEqualTo(-1);
+		test.value(getLate).isEqualTo("red");
+		test.value(getMidOne).isEqualTo("v0");
+		test.value(getMidTwo).isEqualTo("v0");
+		test.value(getInvalid).isEqualTo(-1);
 
-		if(pass_condition)
-			done();
-		return -1;
+		done();
+
 	});
 
 });
