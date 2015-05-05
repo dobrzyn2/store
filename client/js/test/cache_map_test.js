@@ -43,7 +43,6 @@ describe('cache_map.put()',function(){
 		
 		test.value(count).isEqualTo(cache_size);
 		test.value(c._size).isEqualTo(cache_size);
-		//assert(c.size == cache_size);
 		done();
 		
 	});
